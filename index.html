@@ -8,8 +8,7 @@
 </head>
 <body>
     <div class="container">
-        <!-- 關鍵變更：加入版本號，確認是否為最新版 -->
-        <h1>紅包記帳 (除錯版本 v3)</h1>
+        <h1>紅包禮金記帳工具</h1>
 
         <div class="card">
             <h2>步驟 1: 掃描紅包袋 (辨識姓名)</h2>
@@ -26,7 +25,6 @@
         <div id="loader" class="hidden">
             <div class="spinner"></div>
             <p id="status"></p>
-            <div id="debug-log" style="font-size: 12px; color: #333; margin-top: 15px; text-align: left; width: 90%; max-height: 120px; overflow-y: scroll; background: #eee; padding: 10px; border-radius: 5px; border: 1px solid #ccc;"></div>
         </div>
 
         <div class="card">
@@ -60,7 +58,6 @@
     </div>
 
     <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
-    <!-- 關鍵變更：版本號升級到 v3 -->
-    <script src="script.js?v=3"></script>
+    <script src="script.js"></script>
 </body>
 </html>
