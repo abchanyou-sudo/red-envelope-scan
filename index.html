@@ -7,27 +7,26 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-
     <div class="container">
-        <h1>紅包禮金記帳工具</h1>
+        <!-- 關鍵變更：加入版本號，確認是否為最新版 -->
+        <h1>紅包記帳 (除錯版本 v3)</h1>
 
         <div class="card">
             <h2>步驟 1: 掃描紅包袋 (辨識姓名)</h2>
             <p>請拍攝或選擇紅包袋正面清晰的照片。</p>
-            <!-- 更新：加入 capture 屬性，優先啟動後置相機 -->
             <input type="file" id="nameScanner" accept="image/*" capture="environment">
         </div>
 
         <div class="card">
             <h2>步驟 2: 掃描鈔票 (計算金額)</h2>
             <p>請將鈔票平鋪，拍攝包含所有鈔票面額數字的照片。</p>
-            <!-- 更新：加入 capture 屬性，優先啟動後置相機 -->
             <input type="file" id="amountScanner" accept="image/*" capture="environment">
         </div>
 
         <div id="loader" class="hidden">
             <div class="spinner"></div>
             <p id="status"></p>
+            <div id="debug-log" style="font-size: 12px; color: #333; margin-top: 15px; text-align: left; width: 90%; max-height: 120px; overflow-y: scroll; background: #eee; padding: 10px; border-radius: 5px; border: 1px solid #ccc;"></div>
         </div>
 
         <div class="card">
@@ -52,23 +51,16 @@
             <p>點擊表格中的內容可以直接編輯。</p>
             <table id="recordsTable">
                 <thead>
-                    <tr>
-                        <th>編號</th>
-                        <th>姓名</th>
-                        <th>總金額</th>
-                        <th>操作</th>
-                    </tr>
+                    <tr><th>編號</th><th>姓名</th><th>總金額</th><th>操作</th></tr>
                 </thead>
-                <tbody>
-                    <!-- 紀錄會顯示在這裡 -->
-                </tbody>
+                <tbody></tbody>
             </table>
             <button id="exportBtn">匯出成 CSV 檔案</button>
         </div>
     </div>
 
-    <!-- 引用 Tesseract.js -->
     <script src='https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js'></script>
-    <script src="script.js"></script>
+    <!-- 關鍵變更：版本號升級到 v3 -->
+    <script src="script.js?v=3"></script>
 </body>
 </html>
