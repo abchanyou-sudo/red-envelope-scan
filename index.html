@@ -14,13 +14,15 @@
         <div class="card">
             <h2>步驟 1: 掃描紅包袋 (辨識姓名)</h2>
             <p>請拍攝或選擇紅包袋正面清晰的照片。</p>
-            <input type="file" id="nameScanner" accept="image/*">
+            <!-- 更新：加入 capture 屬性，優先啟動後置相機 -->
+            <input type="file" id="nameScanner" accept="image/*" capture="environment">
         </div>
 
         <div class="card">
             <h2>步驟 2: 掃描鈔票 (計算金額)</h2>
             <p>請將鈔票平鋪，拍攝包含所有鈔票面額數字的照片。</p>
-            <input type="file" id="amountScanner" accept="image/*">
+            <!-- 更新：加入 capture 屬性，優先啟動後置相機 -->
+            <input type="file" id="amountScanner" accept="image/*" capture="environment">
         </div>
 
         <div id="loader" class="hidden">

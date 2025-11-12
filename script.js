@@ -25,9 +25,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
         loader.classList.remove('hidden');
-        status.textContent = '正在載入 OCR 引擎...';
+        status.textContent = '正在準備辨識引擎...';
 
+        // ** 更新部分：明確指定 worker 和語言包的路徑，解決部署後卡住的問題 **
         const worker = await Tesseract.createWorker(lang, 1, {
+            workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+            langPath: 'https://cdn.jsdelivr.net/npm/tesseract.js-lang-data@5/4.0.0_best', 
+            // 注意：Tesseract.js V5 使用 tesseract.js-lang-data 這個包
             logger: m => {
                 status.textContent = `${m.status}: ${Math.round(m.progress * 100)}%`;
                 console.log(m);
@@ -50,6 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 處理姓名掃描
     nameScanner.addEventListener('change', async (e) => {
         const file = e.target.files[0];
+        if (!file) return;
         const recognizedText = await runOCR(file, 'chi_tra');
         recordNameInput.value = recognizedText.replace(/\s/g, ''); // 移除空格
     });
@@ -57,9 +62,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // 處理金額掃描
     amountScanner.addEventListener('change', async (e) => {
         const file = e.target.files[0];
+        if (!file) return;
         const recognizedText = await runOCR(file, 'eng', { whitelist: '0123456789' });
         
-        // 從辨識出的數字中計算總金額
         const numbers = recognizedText.match(/\d+/g) || [];
         let totalAmount = 0;
         const denominations = [2000, 1000, 500, 200, 100];
@@ -68,6 +73,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const num = parseInt(numStr, 10);
             if (denominations.includes(num)) {
                 totalAmount += num;
+            } else {
+                 // 嘗試處理可能的辨識錯誤，例如把 1000 辨識成 100 或 00
+                 if (numStr.includes('1000')) totalAmount += 1000;
+                 else if (numStr.includes('500')) totalAmount += 500;
+                 else if (numStr.includes('200')) totalAmount += 200;
+                 else if (numStr.includes('100')) totalAmount += 100;
             }
         });
         
@@ -139,7 +150,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    recordsTableBody.addEventListener('focusout', (e) => {
+    recordsTableBody.addEventListener('input', (e) => {
         if (e.target.tagName === 'TD' && e.target.hasAttribute('contenteditable')) {
             const row = e.target.closest('tr');
             const id = parseInt(row.dataset.id, 10);
@@ -153,8 +164,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
                 record[field] = value;
             }
-            // 重新渲染以確保資料一致性
-            renderTable();
         }
     });
 
@@ -165,11 +174,11 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "編號,姓名,總金額\n"; // CSV 標頭
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // \uFEFF for BOM to support Excel
+        csvContent += "編號,姓名,總金額\n";
 
         records.forEach(record => {
-            csvContent += `${record.id},${record.name},${record.amount}\n`;
+            csvContent += `${record.id},"${record.name}",${record.amount}\n`;
         });
 
         const encodedUri = encodeURI(csvContent);
