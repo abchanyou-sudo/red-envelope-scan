@@ -14,39 +14,69 @@ document.addEventListener('DOMContentLoaded', () => {
     // 應用程式狀態
     let records = [];
     let nextId = 1;
+    let worker; // 將 worker 提升為全域變數，以便重複使用
 
-    // 初始化
-    updateRecordId();
+    // ** 全新功能：初始化並預載 OCR 引擎 **
+    async function initializeOCR() {
+        status.textContent = '正在初始化辨識引擎...';
+        loader.classList.remove('hidden');
+        try {
+            worker = await Tesseract.createWorker('eng', 1, {
+                // ** 關鍵修正：更換為官方穩定的 Worker 和語言包路徑 **
+                workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
+                langPath: 'https://tessdata.projectnaptha.com/4.0.0_best', // 使用官方推薦、最穩定的語言包來源
+                logger: m => {
+                    if (m.status === 'recognizing text') {
+                       status.textContent = `辨識中... ${Math.round(m.progress * 100)}%`;
+                    } else {
+                       console.log(m.status);
+                    }
+                },
+            });
+            console.log('OCR 引擎初始化成功！');
+        } catch (error) {
+            console.error('OCR 引擎初始化失敗:', error);
+            status.textContent = '引擎載入失敗，請檢查網路連線或稍後重試。';
+            // 讓錯誤訊息停留，不隱藏 loader
+            return;
+        }
+        loader.classList.add('hidden');
+    }
+    
+    // 一進入頁面就開始初始化
+    initializeOCR();
 
-    // 執行 OCR 辨識
+    // 執行 OCR 辨識 (現在這個函式會重複使用已初始化的 worker)
     async function runOCR(file, lang, options = {}) {
+        if (!worker) {
+            alert('辨識引擎尚未準備好，請稍候...');
+            return;
+        }
         if (!file) {
             alert('請先選擇一個圖片檔案');
             return;
         }
+        
         loader.classList.remove('hidden');
-        status.textContent = '正在準備辨識引擎...';
-
-        // ** 更新部分：明確指定 worker 和語言包的路徑，解決部署後卡住的問題 **
-        const worker = await Tesseract.createWorker(lang, 1, {
-            workerPath: 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/worker.min.js',
-            langPath: 'https://cdn.jsdelivr.net/npm/tesseract.js-lang-data@5/4.0.0_best', 
-            // 注意：Tesseract.js V5 使用 tesseract.js-lang-data 這個包
-            logger: m => {
-                status.textContent = `${m.status}: ${Math.round(m.progress * 100)}%`;
-                console.log(m);
-            },
-        });
+        status.textContent = `正在載入 ${lang === 'chi_tra' ? '中文' : '英文'} 語言包...`;
+        
+        await worker.loadLanguage(lang);
+        await worker.initialize(lang);
 
         if (options.whitelist) {
             await worker.setParameters({
                 tessedit_char_whitelist: options.whitelist,
             });
+        } else {
+            // 如果不是辨識數字，確保白名單是關閉的
+             await worker.setParameters({
+                tessedit_char_whitelist: '',
+            });
         }
 
-        status.textContent = '正在辨識圖片...';
+        status.textContent = '辨識中... 0%';
         const { data: { text } } = await worker.recognize(file);
-        await worker.terminate();
+        
         loader.classList.add('hidden');
         return text;
     }
@@ -56,7 +86,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const file = e.target.files[0];
         if (!file) return;
         const recognizedText = await runOCR(file, 'chi_tra');
-        recordNameInput.value = recognizedText.replace(/\s/g, ''); // 移除空格
+        if(recognizedText) recordNameInput.value = recognizedText.replace(/\s/g, '');
     });
 
     // 處理金額掃描
@@ -65,6 +95,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!file) return;
         const recognizedText = await runOCR(file, 'eng', { whitelist: '0123456789' });
         
+        if (!recognizedText) return;
+
         const numbers = recognizedText.match(/\d+/g) || [];
         let totalAmount = 0;
         const denominations = [2000, 1000, 500, 200, 100];
@@ -73,17 +105,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const num = parseInt(numStr, 10);
             if (denominations.includes(num)) {
                 totalAmount += num;
-            } else {
-                 // 嘗試處理可能的辨識錯誤，例如把 1000 辨識成 100 或 00
-                 if (numStr.includes('1000')) totalAmount += 1000;
-                 else if (numStr.includes('500')) totalAmount += 500;
-                 else if (numStr.includes('200')) totalAmount += 200;
-                 else if (numStr.includes('100')) totalAmount += 100;
             }
         });
         
         recordAmountInput.value = totalAmount;
     });
+
+    // --- 以下的程式碼與之前版本相同，無需修改 ---
 
     // 新增紀錄
     addBtn.addEventListener('click', () => {
@@ -174,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
             return;
         }
 
-        let csvContent = "data:text/csv;charset=utf-8,\uFEFF"; // \uFEFF for BOM to support Excel
+        let csvContent = "data:text/csv;charset=utf-8,\uFEFF";
         csvContent += "編號,姓名,總金額\n";
 
         records.forEach(record => {
